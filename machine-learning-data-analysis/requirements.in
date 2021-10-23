@@ -1,0 +1,12 @@
+pip-tools
+ipython
+jupyter
+numpy
+pandas
+scikit-learn
+scipy
+statsmodels
+watermark
+matplotlib
+tqdm
+seaborn
