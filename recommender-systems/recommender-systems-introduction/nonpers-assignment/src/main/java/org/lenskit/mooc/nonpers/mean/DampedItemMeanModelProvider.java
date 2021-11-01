@@ -1,7 +1,6 @@
 package org.lenskit.mooc.nonpers.mean;
 
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import org.lenskit.baseline.MeanDamping;
 import org.lenskit.data.dao.DataAccessObject;
 import org.lenskit.data.ratings.Rating;
@@ -12,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
+import java.util.Map;
 
 /**
  * Provider class that builds the mean rating item scorer, computing damped item means from the
@@ -38,16 +38,18 @@ public class DampedItemMeanModelProvider implements Provider<ItemMeanModel> {
      * <p>The {@code @Inject} annotation tells LensKit to use this constructor.
      *
      * @param dao The data access object (DAO), where the builder will get ratings.  The {@code @Transient}
-     *            annotation on this parameter means that the DAO will be used to build the model, but the
-     *            model will <strong>not</strong> retain a reference to the DAO.  This is standard procedure
-     *            for LensKit models.
+     * annotation on this parameter means that the DAO will be used to build the model, but the
+     * model will <strong>not</strong> retain a reference to the DAO.  This is standard procedure
+     * for LensKit models.
      * @param damping The damping factor for Bayesian damping.  This is number of fake global-mean ratings to
-     *                assume.  It is provided as a parameter so that it can be reconfigured.  See the file
-     *                {@code damped-mean.groovy} for how it is used.
+     * assume.  It is provided as a parameter so that it can be reconfigured.  See the file
+     * {@code damped-mean.groovy} for how it is used.
      */
     @Inject
-    public DampedItemMeanModelProvider(@Transient DataAccessObject dao,
-                                       @MeanDamping double damping) {
+    public DampedItemMeanModelProvider(
+        @Transient final DataAccessObject dao,
+        @MeanDamping final double damping
+    ) {
         this.dao = dao;
         this.damping = damping;
     }
@@ -61,8 +63,26 @@ public class DampedItemMeanModelProvider implements Provider<ItemMeanModel> {
      */
     @Override
     public ItemMeanModel get() {
-        // TODO Compute damped means
-        // TODO Remove the line below when you have finished
-        throw new UnsupportedOperationException("damped mean not implemented");
+        final Long2DoubleOpenHashMap sums = new Long2DoubleOpenHashMap();
+        final Long2DoubleOpenHashMap counts = new Long2DoubleOpenHashMap();
+
+        try (ObjectStream<Rating> ratings = dao.query(Rating.class).stream()) {
+            for (final Rating rating : ratings) {
+                counts.addTo(rating.getItemId(), 1.0);
+                sums.addTo(rating.getItemId(), rating.getValue());
+            }
+        }
+
+        final Double globalMean =
+            sums.values().stream().reduce(0.0, Double::sum)
+                / counts.values().stream().reduce(0.0, Double::sum);
+
+        final Long2DoubleOpenHashMap means = new Long2DoubleOpenHashMap();
+        for (final Map.Entry<Long, Double> entry : sums.entrySet()) {
+            means.put((long) entry.getKey(), (entry.getValue() + this.damping * globalMean) / (counts.get(entry.getKey()) + globalMean));
+        }
+
+        logger.info("computed mean ratings for {} items", means.size());
+        return new ItemMeanModel(means);
     }
 }

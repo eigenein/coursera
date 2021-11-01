@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -30,22 +31,27 @@ public class MeanItemBasedItemRecommender extends AbstractItemBasedItemRecommend
      * <p>The {@code @Inject} annotation tells LensKit to use this constructor.</p>
      *
      * @param m The model containing item mean ratings.  LensKit will automatically build an {@link ItemMeanModel}
-     *          object.  Its use as a parameter type in this constructor declares it as a <em>dependency</em> of the
-     *          mean-based item scorer.
+     * object.  Its use as a parameter type in this constructor declares it as a <em>dependency</em> of the
+     * mean-based item scorer.
      */
     @Inject
-    public MeanItemBasedItemRecommender(ItemMeanModel m) {
+    public MeanItemBasedItemRecommender(final ItemMeanModel m) {
         model = m;
     }
 
     /**
      * {@inheritDoc}
-     *
+     * <p>
      * This is the LensKit recommend method.  It takes several parameters; we implement it for you in terms of a
      * simpler method ({@link #recommendItems(int, LongSet)}).
      */
     @Override
-    public ResultList recommendRelatedItemsWithDetails(Set<Long> basket, int n, @Nullable Set<Long> candidates, @Nullable Set<Long> exclude) {
+    public ResultList recommendRelatedItemsWithDetails(
+        final Set<Long> basket,
+        final int n,
+        @Nullable final Set<Long> candidates,
+        @Nullable final Set<Long> exclude
+    ) {
         LongSet items;
         if (candidates == null) {
             items = model.getKnownItems();
@@ -82,11 +88,17 @@ public class MeanItemBasedItemRecommender extends AbstractItemBasedItemRecommend
      * @param items The items to score.
      * @return A {@link ResultMap} containing the scores.
      */
-    private ResultList recommendItems(int n, LongSet items) {
-        List<Result> results = new ArrayList<>();
+    private ResultList recommendItems(final int n, final LongSet items) {
+        final List<Result> results = new ArrayList<>();
 
-        // TODO Find the top N items by mean rating
+        for (final Long itemId : items) {
+            if (model.hasItem(itemId)) {
+                results.add(Results.create(itemId, model.getMeanRating(itemId)));
+            }
+        }
 
-        return Results.newResultList(results);
+        results.sort((o1, o2) -> Double.compare(o2.getScore(), o1.getScore()));
+
+        return Results.newResultList(results.subList(0, n));
     }
 }

@@ -1,7 +1,6 @@
 package org.lenskit.mooc.nonpers.mean;
 
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import org.lenskit.data.dao.DataAccessObject;
 import org.lenskit.data.ratings.Rating;
 import org.lenskit.inject.Transient;
@@ -11,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
+import java.util.Map;
 
 /**
  * Provider class that builds the mean rating item scorer, computing item means from the
@@ -33,12 +33,12 @@ public class ItemMeanModelProvider implements Provider<ItemMeanModel> {
      * <p>The {@code @Inject} annotation tells LensKit to use this constructor.
      *
      * @param dao The data access object (DAO), where the builder will get ratings.  The {@code @Transient}
-     *            annotation on this parameter means that the DAO will be used to build the model, but the
-     *            model will <strong>not</strong> retain a reference to the DAO.  This is standard procedure
-     *            for LensKit models.
+     * annotation on this parameter means that the DAO will be used to build the model, but the
+     * model will <strong>not</strong> retain a reference to the DAO.  This is standard procedure
+     * for LensKit models.
      */
     @Inject
-    public ItemMeanModelProvider(@Transient DataAccessObject dao) {
+    public ItemMeanModelProvider(@Transient final DataAccessObject dao) {
         this.dao = dao;
     }
 
@@ -51,17 +51,20 @@ public class ItemMeanModelProvider implements Provider<ItemMeanModel> {
      */
     @Override
     public ItemMeanModel get() {
-        // TODO Set up data structures for computing means
+        final Long2DoubleOpenHashMap sums = new Long2DoubleOpenHashMap();
+        final Long2DoubleOpenHashMap counts = new Long2DoubleOpenHashMap();
 
         try (ObjectStream<Rating> ratings = dao.query(Rating.class).stream()) {
-            for (Rating r: ratings) {
-                // this loop will run once for each rating in the data set
-                // TODO process this rating
+            for (final Rating rating : ratings) {
+                counts.addTo(rating.getItemId(), 1.0);
+                sums.addTo(rating.getItemId(), rating.getValue());
             }
         }
 
-        Long2DoubleOpenHashMap means = new Long2DoubleOpenHashMap();
-        // TODO Finalize means to store them in the mean model
+        final Long2DoubleOpenHashMap means = new Long2DoubleOpenHashMap();
+        for (final Map.Entry<Long, Double> entry : sums.entrySet()) {
+            means.put((long) entry.getKey(), entry.getValue() / counts.get(entry.getKey()));
+        }
 
         logger.info("computed mean ratings for {} items", means.size());
         return new ItemMeanModel(means);
