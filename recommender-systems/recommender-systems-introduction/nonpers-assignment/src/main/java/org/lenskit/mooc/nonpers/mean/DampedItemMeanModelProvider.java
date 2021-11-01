@@ -79,7 +79,7 @@ public class DampedItemMeanModelProvider implements Provider<ItemMeanModel> {
 
         final Long2DoubleOpenHashMap means = new Long2DoubleOpenHashMap();
         for (final Map.Entry<Long, Double> entry : sums.entrySet()) {
-            means.put((long) entry.getKey(), (entry.getValue() + this.damping * globalMean) / (counts.get(entry.getKey()) + globalMean));
+            means.put((long) entry.getKey(), (entry.getValue() + this.damping * globalMean) / (counts.get(entry.getKey()) + damping));
         }
 
         logger.info("computed mean ratings for {} items", means.size());
