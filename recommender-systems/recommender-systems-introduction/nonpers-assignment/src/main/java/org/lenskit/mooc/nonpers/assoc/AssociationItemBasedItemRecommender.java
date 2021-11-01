@@ -28,12 +28,17 @@ public class AssociationItemBasedItemRecommender extends AbstractItemBasedItemRe
      * @param m The association rule model.
      */
     @Inject
-    public AssociationItemBasedItemRecommender(AssociationModel m) {
+    public AssociationItemBasedItemRecommender(final AssociationModel m) {
         model = m;
     }
 
     @Override
-    public ResultList recommendRelatedItemsWithDetails(Set<Long> basket, int n, @Nullable Set<Long> candidates, @Nullable Set<Long> exclude) {
+    public ResultList recommendRelatedItemsWithDetails(
+        final Set<Long> basket,
+        final int n,
+        @Nullable final Set<Long> candidates,
+        @Nullable final Set<Long> exclude
+    ) {
         LongSet items;
         if (candidates == null) {
             items = model.getKnownItems();
@@ -58,16 +63,23 @@ public class AssociationItemBasedItemRecommender extends AbstractItemBasedItemRe
 
     /**
      * Recommend items with an association rule.
+     *
      * @param n The number of recommendations to produce.
      * @param refItem The reference item.
      * @param candidates The candidate items (set of items that can possibly be recommended).
      * @return The list of results.
      */
-    private ResultList recommendItems(int n, long refItem, LongSet candidates) {
-        List<Result> results = new ArrayList<>();
+    private ResultList recommendItems(final int n, final long refItem, final LongSet candidates) {
+        final List<Result> results = new ArrayList<>();
 
-        // TODO Compute the n highest-scoring items from candidates
+        for (final Long itemId : candidates) {
+            if (model.hasItem(itemId)) {
+                results.add(Results.create(itemId, model.getItemAssociation(refItem, itemId)));
+            }
+        }
 
-        return Results.newResultList(results);
+        results.sort((o1, o2) -> Double.compare(o2.getScore(), o1.getScore()));
+
+        return Results.newResultList(results.subList(0, n));
     }
 }

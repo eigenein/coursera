@@ -23,7 +23,7 @@ public class LiftAssociationModelProvider implements Provider<AssociationModel> 
     private final DataAccessObject dao;
 
     @Inject
-    public LiftAssociationModelProvider(@Transient DataAccessObject dao) {
+    public LiftAssociationModelProvider(@Transient final DataAccessObject dao) {
         this.dao = dao;
     }
 
@@ -33,22 +33,22 @@ public class LiftAssociationModelProvider implements Provider<AssociationModel> 
         // While we're at it, compute the set of all users.
 
         // This set contains all users.
-        LongSet allUsers = new LongOpenHashSet();
+        final LongSet allUsers = new LongOpenHashSet();
 
         // This map will map each item ID to the set of users who have rated it.
-        Long2ObjectMap<LongSortedSet> itemUsers = new Long2ObjectOpenHashMap<>();
+        final Long2ObjectMap<LongSortedSet> itemUsers = new Long2ObjectOpenHashMap<>();
 
         // Open a stream, grouping ratings by item ID
-        try (ObjectStream<IdBox<List<Rating>>> ratingStream = dao.query(Rating.class)
-                                                                 .groupBy(CommonAttributes.ITEM_ID)
-                                                                 .stream()) {
+        try (final ObjectStream<IdBox<List<Rating>>> ratingStream = dao.query(Rating.class)
+            .groupBy(CommonAttributes.ITEM_ID)
+            .stream()) {
             // Process each item's ratings
-            for (IdBox<List<Rating>> item: ratingStream) {
+            for (final IdBox<List<Rating>> item : ratingStream) {
                 // Build a set of users.  We build an array first, then convert to a set.
-                LongList users = new LongArrayList();
+                final LongList users = new LongArrayList();
                 // Add each rating's user ID to the user sets
-                for (Rating r: item.getValue()) {
-                    long user = r.getUserId();
+                for (final Rating r : item.getValue()) {
+                    final long user = r.getUserId();
                     users.add(user);
                     allUsers.add(user);
                 }
@@ -61,16 +61,15 @@ public class LiftAssociationModelProvider implements Provider<AssociationModel> 
         // Second step: compute all association rules
 
         // We need a map to store them
-        Long2ObjectMap<Long2DoubleMap> assocMatrix = new Long2ObjectOpenHashMap<>();
-
+        final Long2ObjectMap<Long2DoubleMap> assocMatrix = new Long2ObjectOpenHashMap<>();
 
         // then loop over 'x' items
-        for (Long2ObjectMap.Entry<LongSortedSet> xEntry: itemUsers.long2ObjectEntrySet()) {
-            long xId = xEntry.getLongKey();
-            LongSortedSet xUsers = xEntry.getValue();
+        for (final Long2ObjectMap.Entry<LongSortedSet> xEntry : itemUsers.long2ObjectEntrySet()) {
+            final long xId = xEntry.getLongKey();
+            final LongSortedSet xUsers = xEntry.getValue();
 
             // set up a map to hold the scores for each 'y' item
-            Long2DoubleMap itemScores = new Long2DoubleOpenHashMap();
+            final Long2DoubleMap itemScores = new Long2DoubleOpenHashMap();
 
             // TODO Compute lift association formulas for all other 'Y' items with respect to this 'X'
 

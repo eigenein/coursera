@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * An association rule model, storing item-item association scores.
  *
- * <p>You <strong>should note</strong> need to change this class.  It has some internal optimizations to reduce
+ * <p>You <strong>should not</strong> need to change this class.  It has some internal optimizations to reduce
  * the memory requirements after the model is built.</p>
  */
 @Shareable
